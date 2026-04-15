@@ -1,4 +1,4 @@
-PHONY: install dev build prism typespec-compile clean help
+PHONY: install dev build prism typespec-compile clean help lint lint-fix format format-check stylelint stylelint-fix check
 
 .DEFAULT_GOAL := help
 
@@ -10,6 +10,13 @@ help:
 	@echo "  make install          - Установка всех зависимостей (корень + frontend)"
 	@echo "  make dev              - Запуск frontend dev-сервера на localhost:$(VITE_PORT)"
 	@echo "  make build            - Сборка production версии"
+	@echo "  make lint             - Проверка кода ESLint (frontend)"
+	@echo "  make lint-fix         - Автоисправление ошибок ESLint"
+	@echo "  make format           - Форматирование кода Prettier"
+	@echo "  make format-check     - Проверка форматирования Prettier"
+	@echo "  make stylelint        - Проверка CSS Stylelint"
+	@echo "  make stylelint-fix    - Автоисправление CSS Stylelint"
+	@echo "  make check            - Полная проверка (lint + stylelint + format-check + build)"
 	@echo "  make typespec-compile - Компиляция TypeSpec в OpenAPI"
 	@echo "  make prism            - Запуск Prism (требует предварительной компиляции TypeSpec)"
 	@echo "  make prism-stop       - Остановка Prism сервера"
@@ -31,9 +38,37 @@ build:
 	@echo "Сборка production..."
 	cd frontend && npm run build
 
+lint:
+	@echo "Проверка ESLint..."
+	cd frontend && npm run lint
+
+lint-fix:
+	@echo "Автоисправление ESLint..."
+	cd frontend && npm run lint:fix
+
+format:
+	@echo "Форматирование Prettier..."
+	cd frontend && npm run format
+
+format-check:
+	@echo "Проверка форматирования Prettier..."
+	cd frontend && npm run format:check
+
+stylelint:
+	@echo "Проверка Stylelint..."
+	cd frontend && npm run stylelint
+
+stylelint-fix:
+	@echo "Автоисправление Stylelint..."
+	cd frontend && npm run stylelint:fix
+
+check:
+	@echo "Полная проверка качества кода..."
+	cd frontend && npm run check
+
 typespec-compile:
 	@echo "Компиляция TypeSpec в OpenAPI..."
-	npx tsp compile . --emit @typespec/openapi3
+	npx tsp compile ./typespec --emit @typespec/openapi3
 	@echo "OpenAPI спецификация создана в tsp-output/"
 
 prism: typespec-compile
