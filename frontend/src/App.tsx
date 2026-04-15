@@ -1,12 +1,7 @@
-import './App.css';
+import { AppRouter } from './router';
 
 function App() {
-  return (
-    <div className="app">
-      <h1>Hello World</h1>
-      <p>Calendar Booking Application</p>
-    </div>
-  );
+  return <AppRouter />;
 }
 
 export default App;

@@ -1,0 +1,627 @@
+openapi: 3.0.0
+info:
+  title: Calendar Booking API
+  version: 0.0.0
+  description: API для бронирования встреч с календарем
+
+servers:
+  - url: http://localhost:3000
+    description: Local development server
+
+tags:
+  - name: Owner
+    description: Административные маршруты для владельца календаря
+  - name: Guest
+    description: Публичные маршруты для гостей
+
+paths:
+  /admin/bookings:
+    get:
+      operationId: BookingManagement_listUpcomingBookings
+      summary: Список предстоящих бронирований
+      description: |-
+        Получить список предстоящих бронирований по всем типам событий.
+        Бронирования отсортированы по startTime (ближайшие первыми).
+        Возвращаются только бронирования со статусом confirmed и startTime >= now.
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Booking'
+      tags:
+        - Owner
+
+  /admin/event-types:
+    post:
+      operationId: EventTypeManagement_createEventType
+      summary: Создать тип события
+      description: |-
+        Создать новый тип события.
+        Владелец задаёт id, название, описание и длительность в минутах.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEventTypeRequest'
+      responses:
+        '201':
+          description: The request has succeeded and a new resource has been created as a result.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventType'
+        '409':
+          description: The request conflicts with the current state of the server.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                    enum:
+                      - EVENT_TYPE_ID_CONFLICT
+                  message:
+                    type: string
+                required:
+                  - code
+                  - message
+        '422':
+          description: Client error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                    enum:
+                      - VALIDATION_ERROR
+                  message:
+                    type: string
+                  details:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - message
+                  - details
+      tags:
+        - Owner
+
+    get:
+      operationId: EventTypeManagement_listEventTypes
+      summary: Список типов событий
+      description: Получить список всех типов событий.
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EventType'
+      tags:
+        - Owner
+
+  /public/event-types:
+    get:
+      operationId: EventTypeBrowse_listEventTypes
+      summary: Список видов брони
+      description: |-
+        Получить список доступных видов брони.
+        Гость видит название, описание и длительность каждого типа.
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EventTypeSummary'
+              examples:
+                default:
+                  value:
+                    - id: 'meeting-15min-a7x9k2m3'
+                      name: 'Встреча 15 минут'
+                      description: 'Короткий тип события для быстрого слота.'
+                      durationMinutes: 15
+                    - id: 'meeting-30min-b4p8n1q7'
+                      name: 'Встреча 30 минут'
+                      description: 'Базовый тип события для бронирования.'
+                      durationMinutes: 30
+      tags:
+        - Guest
+
+  /public/event-types/{id}/bookings:
+    post:
+      operationId: EventTypeBrowse_createBooking
+      summary: Создать бронирование
+      description: |-
+        Создать бронирование на выбранный слот.
+
+        Правила:
+        - startTime должен быть в пределах ближайших 14 дней.
+        - Слот считается занятым если любое бронирование пересекается
+        по времени с [startTime, startTime + durationMinutes], вне зависимости
+        от типа события.
+        - При конфликте возвращается 409 Conflict.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBookingRequest'
+      responses:
+        '201':
+          description: The request has succeeded and a new resource has been created as a result.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Booking'
+        '404':
+          description: The server cannot find the requested resource.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                    enum:
+                      - EVENT_TYPE_NOT_FOUND
+                  message:
+                    type: string
+                required:
+                  - code
+                  - message
+        '409':
+          description: The request conflicts with the current state of the server.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookingConflictError'
+        '422':
+          description: Client error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                    enum:
+                      - VALIDATION_ERROR
+                  message:
+                    type: string
+                  details:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - message
+                  - details
+      tags:
+        - Guest
+
+  /public/event-types/{id}/slots:
+    get:
+      operationId: EventTypeBrowse_listAvailableSlots
+      summary: Доступные слоты на ближайшие 14 дней
+      description: |-
+        Получить доступные временные слоты для выбранного типа события.
+
+        Правила формирования слотов:
+        - Окно: [текущая дата, текущая дата + 14 дней]
+        - endTime каждого слота = startTime + durationMinutes типа события
+        - Слот недоступен (isAvailable: false), если на этот временной
+        промежуток уже существует хотя бы одно бронирование любого типа.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Slot'
+              examples:
+                meeting-30min:
+                  summary: Слоты для встречи 30 минут
+                  value:
+                    - id: slot-30min-2026-04-15-09-00
+                      startTime: '2026-04-15T09:00:00.000Z'
+                      endTime: '2026-04-15T09:30:00.000Z'
+                      isAvailable: true
+                    - id: slot-30min-2026-04-15-09-30
+                      startTime: '2026-04-15T09:30:00.000Z'
+                      endTime: '2026-04-15T10:00:00.000Z'
+                      isAvailable: false
+                    - id: slot-30min-2026-04-15-10-00
+                      startTime: '2026-04-15T10:00:00.000Z'
+                      endTime: '2026-04-15T10:30:00.000Z'
+                      isAvailable: true
+                    - id: slot-30min-2026-04-15-14-00
+                      startTime: '2026-04-15T14:00:00.000Z'
+                      endTime: '2026-04-15T14:30:00.000Z'
+                      isAvailable: true
+                    - id: slot-30min-2026-04-15-14-30
+                      startTime: '2026-04-15T14:30:00.000Z'
+                      endTime: '2026-04-15T15:00:00.000Z'
+                      isAvailable: false
+                    - id: slot-30min-2026-04-15-15-00
+                      startTime: '2026-04-15T15:00:00.000Z'
+                      endTime: '2026-04-15T15:30:00.000Z'
+                      isAvailable: true
+                    - id: slot-30min-2026-04-16-09-00
+                      startTime: '2026-04-16T09:00:00.000Z'
+                      endTime: '2026-04-16T09:30:00.000Z'
+                      isAvailable: true
+                    - id: slot-30min-2026-04-16-11-00
+                      startTime: '2026-04-16T11:00:00.000Z'
+                      endTime: '2026-04-16T11:30:00.000Z'
+                      isAvailable: false
+                    - id: slot-30min-2026-04-16-15-30
+                      startTime: '2026-04-16T15:30:00.000Z'
+                      endTime: '2026-04-16T16:00:00.000Z'
+                      isAvailable: true
+                    - id: slot-30min-2026-04-17-10-00
+                      startTime: '2026-04-17T10:00:00.000Z'
+                      endTime: '2026-04-17T10:30:00.000Z'
+                      isAvailable: false
+                meeting-15min:
+                  summary: Слоты для встречи 15 минут
+                  value:
+                    - id: slot-15min-2026-04-15-09-00
+                      startTime: '2026-04-15T09:00:00.000Z'
+                      endTime: '2026-04-15T09:15:00.000Z'
+                      isAvailable: true
+                    - id: slot-15min-2026-04-15-09-15
+                      startTime: '2026-04-15T09:15:00.000Z'
+                      endTime: '2026-04-15T09:30:00.000Z'
+                      isAvailable: false
+                    - id: slot-15min-2026-04-15-09-30
+                      startTime: '2026-04-15T09:30:00.000Z'
+                      endTime: '2026-04-15T09:45:00.000Z'
+                      isAvailable: true
+                    - id: slot-15min-2026-04-15-09-45
+                      startTime: '2026-04-15T09:45:00.000Z'
+                      endTime: '2026-04-15T10:00:00.000Z'
+                      isAvailable: true
+                    - id: slot-15min-2026-04-15-10-00
+                      startTime: '2026-04-15T10:00:00.000Z'
+                      endTime: '2026-04-15T10:15:00.000Z'
+                      isAvailable: false
+                    - id: slot-15min-2026-04-15-14-00
+                      startTime: '2026-04-15T14:00:00.000Z'
+                      endTime: '2026-04-15T14:15:00.000Z'
+                      isAvailable: true
+                    - id: slot-15min-2026-04-15-14-15
+                      startTime: '2026-04-15T14:15:00.000Z'
+                      endTime: '2026-04-15T14:30:00.000Z'
+                      isAvailable: false
+                    - id: slot-15min-2026-04-15-14-30
+                      startTime: '2026-04-15T14:30:00.000Z'
+                      endTime: '2026-04-15T14:45:00.000Z'
+                      isAvailable: true
+                    - id: slot-15min-2026-04-15-14-45
+                      startTime: '2026-04-15T14:45:00.000Z'
+                      endTime: '2026-04-15T15:00:00.000Z'
+                      isAvailable: false
+                    - id: slot-15min-2026-04-16-09-00
+                      startTime: '2026-04-16T09:00:00.000Z'
+                      endTime: '2026-04-16T09:15:00.000Z'
+                      isAvailable: true
+                    - id: slot-15min-2026-04-16-10-30
+                      startTime: '2026-04-16T10:30:00.000Z'
+                      endTime: '2026-04-16T10:45:00.000Z'
+                      isAvailable: false
+                    - id: slot-15min-2026-04-16-14-00
+                      startTime: '2026-04-16T14:00:00.000Z'
+                      endTime: '2026-04-16T14:15:00.000Z'
+                      isAvailable: true
+                    - id: slot-15min-2026-04-17-11-00
+                      startTime: '2026-04-17T11:00:00.000Z'
+                      endTime: '2026-04-17T11:15:00.000Z'
+                      isAvailable: false
+        '404':
+          description: The server cannot find the requested resource.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                    enum:
+                      - EVENT_TYPE_NOT_FOUND
+                  message:
+                    type: string
+                required:
+                  - code
+                  - message
+      tags:
+        - Guest
+
+  /public/owner:
+    get:
+      operationId: Owner_getPublicInfo
+      summary: Информация о владельце календаря
+      description: |-
+        Получить публичную информацию о владельце календаря.
+        Используется для отображения на странице бронирования.
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Owner'
+              examples:
+                default:
+                  value:
+                    id: 'tota-owner'
+                    name: 'Tota'
+      tags:
+        - Guest
+
+components:
+  schemas:
+    Booking:
+      type: object
+      required:
+        - id
+        - eventTypeId
+        - eventTypeName
+        - startTime
+        - endTime
+        - guestName
+        - guestEmail
+        - status
+        - createdAt
+      properties:
+        id:
+          type: string
+          description: Уникальный идентификатор бронирования
+        eventTypeId:
+          type: string
+          description: Идентификатор типа события
+        eventTypeName:
+          type: string
+          description: Название типа события (денормализовано для удобства отображения)
+        startTime:
+          type: string
+          format: date-time
+          description: Дата и время начала встречи (ISO 8601)
+        endTime:
+          type: string
+          format: date-time
+          description: Дата и время окончания встречи (ISO 8601)
+        guestName:
+          type: string
+          description: Имя гостя
+        guestEmail:
+          type: string
+          description: Email гостя
+        guestNote:
+          type: string
+          description: Примечание гостя (опционально)
+        status:
+          $ref: '#/components/schemas/BookingStatus'
+        createdAt:
+          type: string
+          format: date-time
+          description: Дата и время создания бронирования (ISO 8601)
+      description: |-
+        Бронирование слота гостем.
+        На одно и то же время не может существовать двух бронирований,
+        даже если они относятся к разным типам событий.
+
+    BookingConflictError:
+      type: object
+      required:
+        - code
+        - message
+        - conflictingStartTime
+      properties:
+        code:
+          type: string
+          enum:
+            - SLOT_ALREADY_BOOKED
+          description: Код ошибки
+        message:
+          type: string
+          description: Человекочитаемое сообщение
+        conflictingStartTime:
+          type: string
+          format: date-time
+          description: Начало занятого слота
+      description: Ошибка конфликта при попытке забронировать уже занятый слот
+
+    BookingStatus:
+      type: string
+      enum:
+        - confirmed
+        - cancelled
+      description: Статус бронирования
+
+    CreateBookingRequest:
+      type: object
+      required:
+        - startTime
+        - guestName
+        - guestEmail
+      properties:
+        startTime:
+          type: string
+          format: date-time
+          description: |-
+            Дата и время начала желаемого слота (ISO 8601).
+            Должна входить в окно ближайших 14 дней от текущей даты.
+            Если слот уже занят, сервер вернёт 409 Conflict.
+        guestName:
+          type: string
+          description: Имя гостя (обязательно)
+        guestEmail:
+          type: string
+          description: Email гостя (обязательно)
+        guestNote:
+          type: string
+          description: Примечание к встрече (опционально)
+      description: Тело запроса для создания бронирования гостем
+
+    CreateEventTypeRequest:
+      type: object
+      required:
+        - id
+        - name
+        - description
+        - durationMinutes
+      properties:
+        id:
+          type: string
+          description: Уникальный идентификатор (задаётся владельцем)
+        name:
+          type: string
+          description: Название типа события
+        description:
+          type: string
+          description: Описание типа события
+        durationMinutes:
+          type: integer
+          format: int32
+          description: Длительность встречи в минутах
+      description: Тело запроса для создания типа события
+
+    EventType:
+      type: object
+      required:
+        - id
+        - name
+        - description
+        - durationMinutes
+      properties:
+        id:
+          type: string
+          description: Уникальный идентификатор типа события
+        name:
+          type: string
+          description: Название типа события, отображаемое гостям
+        description:
+          type: string
+          description: Описание типа события
+        durationMinutes:
+          type: integer
+          format: int32
+          description: Длительность встречи в минутах
+      description: |-
+        Тип события, созданный владельцем календаря.
+        Определяет категорию встречи с её названием, описанием и длительностью.
+
+    EventTypeSummary:
+      type: object
+      required:
+        - id
+        - name
+        - description
+        - durationMinutes
+      properties:
+        id:
+          type: string
+          description: Уникальный идентификатор типа события
+        name:
+          type: string
+          description: Название типа события
+        description:
+          type: string
+          description: Описание типа события
+        durationMinutes:
+          type: integer
+          format: int32
+          description: Длительность встречи в минутах
+      description: |-
+        Публичное представление типа события для гостей.
+        Содержит только данные, необходимые для выбора встречи.
+
+    Owner:
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: string
+          description: Уникальный идентификатор владельца
+        name:
+          type: string
+          description: Отображаемое имя владельца
+      description: |-
+        Владелец календаря. Единственный предзаданный профиль в системе.
+        Регистрация и авторизация отсутствуют — профиль используется по умолчанию
+        в административной части приложения.
+
+    Slot:
+      type: object
+      required:
+        - id
+        - startTime
+        - endTime
+        - isAvailable
+      properties:
+        id:
+          type: string
+          description: Уникальный идентификатор слота
+        startTime:
+          type: string
+          format: date-time
+          description: Дата и время начала слота (ISO 8601)
+        endTime:
+          type: string
+          format: date-time
+          description: |-
+            Дата и время окончания слота (ISO 8601).
+            Вычисляется как startTime + durationMinutes выбранного типа события.
+        isAvailable:
+          type: boolean
+          description: |-
+            Доступен ли слот для бронирования.
+            false — если на это время уже есть хотя бы одно бронирование
+            (даже для другого типа события).
+      description: |-
+        Временной слот для записи.
+        Слоты формируются на 14 дней начиная с текущей даты.
+        Слот считается занятым, если на него создано хотя бы одно бронирование
+        вне зависимости от типа события.
+
+    SlotQueryParams:
+      type: object
+      required:
+        - eventTypeId
+      properties:
+        eventTypeId:
+          type: string
+          description: |-
+            Идентификатор типа события.
+            Используется для вычисления endTime каждого слота.
+      description: Параметры запроса свободных слотов

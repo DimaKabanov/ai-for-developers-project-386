@@ -1,4 +1,4 @@
-PHONY: install dev build prism typespec-compile clean help lint lint-fix format format-check stylelint stylelint-fix check
+PHONY: install dev build prism clean help lint lint-fix format format-check stylelint stylelint-fix check
 
 .DEFAULT_GOAL := help
 
@@ -17,8 +17,7 @@ help:
 	@echo "  make stylelint        - Проверка CSS Stylelint"
 	@echo "  make stylelint-fix    - Автоисправление CSS Stylelint"
 	@echo "  make check            - Полная проверка (lint + stylelint + format-check + build)"
-	@echo "  make typespec-compile - Компиляция TypeSpec в OpenAPI"
-	@echo "  make prism            - Запуск Prism (требует предварительной компиляции TypeSpec)"
+	@echo "  make prism            - Запуск Prism мок-сервера на http://localhost:$(PRISM_PORT)"
 	@echo "  make prism-stop       - Остановка Prism сервера"
 	@echo "  make clean            - Очистка node_modules и сборок"
 	@echo "  make clean-all        - Полная очистка включая lock-файлы"
@@ -66,14 +65,9 @@ check:
 	@echo "Полная проверка качества кода..."
 	cd frontend && npm run check
 
-typespec-compile:
-	@echo "Компиляция TypeSpec в OpenAPI..."
-	npx tsp compile ./typespec --emit @typespec/openapi3
-	@echo "OpenAPI спецификация создана в tsp-output/"
-
-prism: typespec-compile
+prism:
 	@echo "Запуск Prism на http://localhost:$(PRISM_PORT)"
-	npx prism mock tsp-output/openapi.yaml --port $(PRISM_PORT) || echo "Ошибка: Prism не установлен. Установите: npm install -g @stoplight/prism-cli"
+	npx prism mock frontend/public/openapi.yaml --port $(PRISM_PORT) --cors || echo "Ошибка: Prism не установлен. Установите: npm install -g @stoplight/prism-cli"
 
 prism-stop:
 	@echo "Остановка Prism..."
@@ -84,7 +78,6 @@ clean:
 	-rm -rf frontend/node_modules
 	-rm -rf frontend/dist
 	-rm -rf node_modules
-	-rm -rf tsp-output
 	@echo "Очистка завершена"
 
 clean-all: clean
@@ -93,4 +86,4 @@ clean-all: clean
 	-rm -rf package-lock.json
 	@echo "Полная очистка завершена"
 
-.PHONY: install dev build prism typespec-compile clean help
+.PHONY: install dev build prism clean help
