@@ -38,6 +38,8 @@ export interface Owner {
   id: string;
   /** Отображаемое имя владельца */
   name: string;
+  /** Email владельца (опционально) */
+  email?: string;
 }
 
 /**

@@ -63,4 +63,67 @@ export const apiClient = {
 
     return response.json();
   },
+
+  /**
+   * Создать новый тип события (admin)
+   */
+  async createEventType(data: {
+    id: string;
+    name: string;
+    description: string;
+    durationMinutes: number;
+  }): Promise<EventTypeSummary> {
+    const response = await fetch(`${API_BASE_URL}/admin/event-types`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to create event type: ${response.status}`);
+    }
+
+    return response.json();
+  },
+
+  /**
+   * Обновить тип события (admin)
+   */
+  async updateEventType(
+    eventTypeId: string,
+    data: {
+      name: string;
+      description: string;
+      durationMinutes: number;
+    }
+  ): Promise<EventTypeSummary> {
+    const response = await fetch(`${API_BASE_URL}/admin/event-types/${eventTypeId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to update event type: ${response.status}`);
+    }
+
+    return response.json();
+  },
+
+  /**
+   * Удалить тип события (admin)
+   */
+  async deleteEventType(eventTypeId: string): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/admin/event-types/${eventTypeId}`, {
+      method: 'DELETE',
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to delete event type: ${response.status}`);
+    }
+  },
 };

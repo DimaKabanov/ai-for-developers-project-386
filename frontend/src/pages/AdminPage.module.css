@@ -1,0 +1,95 @@
+/* AdminPage.module.css */
+
+/* Owner Card */
+.ownerCard {
+  margin-bottom: 2rem;
+}
+
+.ownerAvatar {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background-color: var(--mantine-color-blue-1);
+  color: var(--mantine-color-blue-6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+/* Section Headers */
+.sectionHeader {
+  margin-bottom: 1rem;
+}
+
+/* Event Type Cards */
+.eventTypeCard {
+  transition: transform 0.2s ease;
+}
+
+.eventTypeCard:hover {
+  transform: translateY(-2px);
+}
+
+.eventId {
+  font-family: monospace;
+  color: var(--mantine-color-gray-5);
+  font-size: 0.875rem;
+}
+
+/* Duration Buttons */
+.durationButtons {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.durationButton {
+  min-width: 60px;
+}
+
+.durationButtonActive {
+  background-color: var(--mantine-color-blue-6);
+  color: white;
+}
+
+/* Inline Form */
+.inlineForm {
+  border: 2px solid var(--mantine-color-blue-3);
+  background-color: var(--mantine-color-blue-0);
+}
+
+/* Meeting Card */
+.meetingCard {
+  margin-bottom: 1rem;
+}
+
+.meetingAvatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background-color: var(--mantine-color-blue-1);
+  color: var(--mantine-color-blue-6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.meetingNote {
+  color: var(--mantine-color-gray-6);
+  font-style: italic;
+}
+
+/* Empty State */
+.emptyState {
+  text-align: center;
+  padding: 3rem 1rem;
+}
+
+.emptyIcon {
+  font-size: 48px;
+  margin-bottom: 1rem;
+}
