@@ -1,0 +1,9 @@
+services:
+  app:
+    build: .
+    environment:
+      - SECRET_KEY_BASE=test_secret_key_for_hexlet_ci_only_do_not_use_in_production
+      - RAILS_ENV=production
+      - PORT=3000
+    ports:
+      - "3000:3000"
