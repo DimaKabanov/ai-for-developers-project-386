@@ -3,7 +3,7 @@
 
 ## Live Demo
 
-**Deployed on Render.com:** [https://calendar-booking.onrender.com](https://calendar-booking.onrender.com)
+**Deployed on Render.com:** [https://calendar-booking-pzgn.onrender.com](https://calendar-booking-pzgn.onrender.com)
 
 Calendar Booking - приложение для бронирования встреч с возможностью выбора временных слотов.
 
