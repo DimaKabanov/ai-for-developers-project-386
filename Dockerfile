@@ -63,7 +63,7 @@ FROM base
 
 # Install runtime dependencies
 RUN apt-get update -qq && \
-    apt-get install --no-install-recommends -y curl libsqlite3-0 && \
+    apt-get install --no-install-recommends -y curl libsqlite3-0 openssl && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
 # Copy built gems
@@ -88,5 +88,5 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:${PORT}/up || exit 1
 
-# Start Rails server on PORT
-CMD ["./bin/rails", "server", "-b", "0.0.0.0"]
+# Start Rails server on PORT (generate SECRET_KEY_BASE if not set)
+CMD ["/bin/sh", "-c", "if [ -z \"$SECRET_KEY_BASE\" ]; then export SECRET_KEY_BASE=$(openssl rand -hex 64); fi && ./bin/rails server -b 0.0.0.0"]
