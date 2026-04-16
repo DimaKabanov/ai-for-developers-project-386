@@ -1,6 +1,7 @@
 import type { EventTypeSummary, Owner, Slot, Booking, CreateBookingRequest } from '../types/api';
 
-const API_BASE_URL = 'http://localhost:3000';
+// Use relative paths in production (same origin), explicit URL in development
+const API_BASE_URL = import.meta.env.PROD ? '' : 'http://localhost:3000';
 
 /**
  * API клиент для работы с бэкендом

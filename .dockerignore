@@ -1,0 +1,51 @@
+# Node modules
+node_modules/
+frontend/node_modules/
+e2e/node_modules/
+
+# Build outputs
+frontend/dist/
+backend/tmp/
+backend/log/
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test files
+e2e/
+backend/spec/
+
+# Documentation
+*.md
+!README.md
+
+# CI/CD
+.github/
+
+# Lock files (will be copied explicitly)
+# We keep package-lock.json and Gemfile.lock
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# TypeSpec output (generated)
+typespec/tsp-output/
+
+# Scripts not needed in production
+scripts/
+
+# Skills
+.agents/
