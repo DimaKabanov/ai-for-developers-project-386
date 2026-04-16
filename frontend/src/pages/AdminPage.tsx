@@ -80,8 +80,9 @@ export function AdminPage() {
   // Data states
   const [owner, setOwner] = useState<Owner | null>(null);
   const [eventTypes, setEventTypes] = useState<EventTypeSummary[]>([]);
-  const [meetings] = useState<Booking[]>([]);
+  const [meetings, setMeetings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Form states
   const [isCreating, setIsCreating] = useState(false);
@@ -115,17 +116,17 @@ export function AdminPage() {
     const loadData = async () => {
       try {
         setLoading(true);
-        const [ownerData, typesData] = await Promise.all([
+        setError(null);
+        const [ownerData, typesData, meetingsData] = await Promise.all([
           apiClient.fetchOwner(),
-          apiClient.fetchEventTypes(),
+          apiClient.fetchAdminEventTypes(),
+          apiClient.fetchUpcomingBookings(),
         ]);
         setOwner(ownerData);
         setEventTypes(typesData);
-        // TODO: Load upcoming meetings when API is ready
-        // const meetingsData = await apiClient.fetchUpcomingMeetings();
-        // setMeetings(meetingsData);
+        setMeetings(meetingsData);
       } catch (err) {
-        console.error('Failed to load admin data', err);
+        setError(err instanceof Error ? err.message : 'Не удалось загрузить данные админки');
       } finally {
         setLoading(false);
       }
@@ -176,6 +177,7 @@ export function AdminPage() {
 
   const handleSubmit = async (values: typeof form.values) => {
     try {
+      setError(null);
       if (editingId) {
         // Update existing
         await apiClient.updateEventType(editingId, {
@@ -207,17 +209,18 @@ export function AdminPage() {
       }
       handleCancel();
     } catch (err) {
-      console.error('Failed to save event type', err);
+      setError(err instanceof Error ? err.message : 'Не удалось сохранить тип события');
     }
   };
 
   const handleDelete = async (id: string) => {
     try {
+      setError(null);
       await apiClient.deleteEventType(id);
       setEventTypes(prev => prev.filter(et => et.id !== id));
       setDeleteConfirmId(null);
     } catch (err) {
-      console.error('Failed to delete event type', err);
+      setError(err instanceof Error ? err.message : 'Не удалось удалить тип события');
     }
   };
 
@@ -231,6 +234,14 @@ export function AdminPage() {
     return (
       <Container size="lg" py={40}>
         <Text>Загрузка...</Text>
+      </Container>
+    );
+  }
+
+  if (error) {
+    return (
+      <Container size="lg" py={40}>
+        <Text c="red">{error}</Text>
       </Container>
     );
   }

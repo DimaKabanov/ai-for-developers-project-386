@@ -13,7 +13,9 @@ namespace CalendarBooking;
  * Сценарии владельца:
  * 1. Создать тип события (POST /admin/event-types)
  * 2. Посмотреть список всех типов событий (GET /admin/event-types)
- * 3. Посмотреть список предстоящих бронирований (GET /admin/bookings)
+ * 3. Обновить тип события (PUT /admin/event-types/{id})
+ * 4. Удалить тип события (DELETE /admin/event-types/{id})
+ * 5. Посмотреть список предстоящих бронирований (GET /admin/bookings)
  */
 @route("/admin")
 @tag("Owner")
@@ -53,6 +55,41 @@ namespace OwnerRoutes {
     op listEventTypes(): {
       @statusCode statusCode: 200;
       @body eventTypes: EventType[];
+    };
+
+    /**
+     * Обновить существующий тип события.
+     */
+    @put
+    @route("/{id}")
+    @summary("Обновить тип события")
+    op updateEventType(
+      @path id: string,
+      @body body: UpdateEventTypeRequest,
+    ): {
+      @statusCode statusCode: 200;
+      @body eventType: EventType;
+    } | {
+      @statusCode statusCode: 404;
+      @body error: { code: "EVENT_TYPE_NOT_FOUND"; message: string };
+    } | {
+      @statusCode statusCode: 422;
+      @body error: { code: "VALIDATION_ERROR"; message: string; details: string[] };
+    };
+
+    /**
+     * Удалить тип события.
+     */
+    @delete
+    @route("/{id}")
+    @summary("Удалить тип события")
+    op deleteEventType(
+      @path id: string,
+    ): {
+      @statusCode statusCode: 204;
+    } | {
+      @statusCode statusCode: 404;
+      @body error: { code: "EVENT_TYPE_NOT_FOUND"; message: string };
     };
   }
 

@@ -20,6 +20,19 @@ export const apiClient = {
   },
 
   /**
+   * Получить список типов событий для admin
+   */
+  async fetchAdminEventTypes(): Promise<EventTypeSummary[]> {
+    const response = await fetch(`${API_BASE_URL}/admin/event-types`);
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch admin event types: ${response.status}`);
+    }
+
+    return response.json();
+  },
+
+  /**
    * Получить информацию о владельце календаря
    */
   async fetchOwner(): Promise<Owner> {
@@ -125,5 +138,18 @@ export const apiClient = {
     if (!response.ok) {
       throw new Error(`Failed to delete event type: ${response.status}`);
     }
+  },
+
+  /**
+   * Получить список предстоящих встреч (admin)
+   */
+  async fetchUpcomingBookings(): Promise<Booking[]> {
+    const response = await fetch(`${API_BASE_URL}/admin/bookings`);
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch bookings: ${response.status}`);
+    }
+
+    return response.json();
   },
 };

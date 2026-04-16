@@ -2,18 +2,9 @@ openapi: 3.0.0
 info:
   title: Calendar Booking API
   version: 0.0.0
-  description: API для бронирования встреч с календарем
-
-servers:
-  - url: http://localhost:3000
-    description: Local development server
-
 tags:
   - name: Owner
-    description: Административные маршруты для владельца календаря
   - name: Guest
-    description: Публичные маршруты для гостей
-
 paths:
   /admin/bookings:
     get:
@@ -23,6 +14,7 @@ paths:
         Получить список предстоящих бронирований по всем типам событий.
         Бронирования отсортированы по startTime (ближайшие первыми).
         Возвращаются только бронирования со статусом confirmed и startTime >= now.
+      parameters: []
       responses:
         '200':
           description: The request has succeeded.
@@ -34,7 +26,6 @@ paths:
                   $ref: '#/components/schemas/Booking'
       tags:
         - Owner
-
   /admin/event-types:
     post:
       operationId: EventTypeManagement_createEventType
@@ -42,12 +33,7 @@ paths:
       description: |-
         Создать новый тип события.
         Владелец задаёт id, название, описание и длительность в минутах.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateEventTypeRequest'
+      parameters: []
       responses:
         '201':
           description: The request has succeeded and a new resource has been created as a result.
@@ -94,11 +80,17 @@ paths:
                   - details
       tags:
         - Owner
-
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEventTypeRequest'
     get:
       operationId: EventTypeManagement_listEventTypes
       summary: Список типов событий
       description: Получить список всех типов событий.
+      parameters: []
       responses:
         '200':
           description: The request has succeeded.
@@ -110,7 +102,100 @@ paths:
                   $ref: '#/components/schemas/EventType'
       tags:
         - Owner
-
+  /admin/event-types/{id}:
+    put:
+      operationId: EventTypeManagement_updateEventType
+      summary: Обновить тип события
+      description: Обновить существующий тип события.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventType'
+        '404':
+          description: The server cannot find the requested resource.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                    enum:
+                      - EVENT_TYPE_NOT_FOUND
+                  message:
+                    type: string
+                required:
+                  - code
+                  - message
+        '422':
+          description: Client error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                    enum:
+                      - VALIDATION_ERROR
+                  message:
+                    type: string
+                  details:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - code
+                  - message
+                  - details
+      tags:
+        - Owner
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateEventTypeRequest'
+    delete:
+      operationId: EventTypeManagement_deleteEventType
+      summary: Удалить тип события
+      description: Удалить тип события.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: 'There is no content to send for this request, but the headers may be useful. '
+        '404':
+          description: The server cannot find the requested resource.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                    enum:
+                      - EVENT_TYPE_NOT_FOUND
+                  message:
+                    type: string
+                required:
+                  - code
+                  - message
+      tags:
+        - Owner
   /public/event-types:
     get:
       operationId: EventTypeBrowse_listEventTypes
@@ -118,6 +203,7 @@ paths:
       description: |-
         Получить список доступных видов брони.
         Гость видит название, описание и длительность каждого типа.
+      parameters: []
       responses:
         '200':
           description: The request has succeeded.
@@ -127,20 +213,8 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/EventTypeSummary'
-              examples:
-                default:
-                  value:
-                    - id: 'meeting-15min-a7x9k2m3'
-                      name: 'Встреча 15 минут'
-                      description: 'Короткий тип события для быстрого слота.'
-                      durationMinutes: 15
-                    - id: 'meeting-30min-b4p8n1q7'
-                      name: 'Встреча 30 минут'
-                      description: 'Базовый тип события для бронирования.'
-                      durationMinutes: 30
       tags:
         - Guest
-
   /public/event-types/{id}/bookings:
     post:
       operationId: EventTypeBrowse_createBooking
@@ -150,6 +224,8 @@ paths:
 
         Правила:
         - startTime должен быть в пределах ближайших 14 дней.
+        - startTime должен совпадать с началом слота из сетки:
+        рабочие часы 09:00-18:00 UTC, шаг = durationMinutes выбранного типа.
         - Слот считается занятым если любое бронирование пересекается
         по времени с [startTime, startTime + durationMinutes], вне зависимости
         от типа события.
@@ -160,12 +236,6 @@ paths:
           required: true
           schema:
             type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateBookingRequest'
       responses:
         '201':
           description: The request has succeeded and a new resource has been created as a result.
@@ -218,7 +288,12 @@ paths:
                   - details
       tags:
         - Guest
-
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBookingRequest'
   /public/event-types/{id}/slots:
     get:
       operationId: EventTypeBrowse_listAvailableSlots
@@ -228,6 +303,8 @@ paths:
 
         Правила формирования слотов:
         - Окно: [текущая дата, текущая дата + 14 дней]
+        - Рабочие часы: 09:00-18:00 UTC
+        - Шаг сетки слотов равен durationMinutes выбранного типа события
         - endTime каждого слота = startTime + durationMinutes типа события
         - Слот недоступен (isAvailable: false), если на этот временной
         промежуток уже существует хотя бы одно бронирование любого типа.
@@ -246,105 +323,6 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Slot'
-              examples:
-                meeting-30min:
-                  summary: Слоты для встречи 30 минут
-                  value:
-                    - id: slot-30min-2026-04-15-09-00
-                      startTime: '2026-04-15T09:00:00.000Z'
-                      endTime: '2026-04-15T09:30:00.000Z'
-                      isAvailable: true
-                    - id: slot-30min-2026-04-15-09-30
-                      startTime: '2026-04-15T09:30:00.000Z'
-                      endTime: '2026-04-15T10:00:00.000Z'
-                      isAvailable: false
-                    - id: slot-30min-2026-04-15-10-00
-                      startTime: '2026-04-15T10:00:00.000Z'
-                      endTime: '2026-04-15T10:30:00.000Z'
-                      isAvailable: true
-                    - id: slot-30min-2026-04-15-14-00
-                      startTime: '2026-04-15T14:00:00.000Z'
-                      endTime: '2026-04-15T14:30:00.000Z'
-                      isAvailable: true
-                    - id: slot-30min-2026-04-15-14-30
-                      startTime: '2026-04-15T14:30:00.000Z'
-                      endTime: '2026-04-15T15:00:00.000Z'
-                      isAvailable: false
-                    - id: slot-30min-2026-04-15-15-00
-                      startTime: '2026-04-15T15:00:00.000Z'
-                      endTime: '2026-04-15T15:30:00.000Z'
-                      isAvailable: true
-                    - id: slot-30min-2026-04-16-09-00
-                      startTime: '2026-04-16T09:00:00.000Z'
-                      endTime: '2026-04-16T09:30:00.000Z'
-                      isAvailable: true
-                    - id: slot-30min-2026-04-16-11-00
-                      startTime: '2026-04-16T11:00:00.000Z'
-                      endTime: '2026-04-16T11:30:00.000Z'
-                      isAvailable: false
-                    - id: slot-30min-2026-04-16-15-30
-                      startTime: '2026-04-16T15:30:00.000Z'
-                      endTime: '2026-04-16T16:00:00.000Z'
-                      isAvailable: true
-                    - id: slot-30min-2026-04-17-10-00
-                      startTime: '2026-04-17T10:00:00.000Z'
-                      endTime: '2026-04-17T10:30:00.000Z'
-                      isAvailable: false
-                meeting-15min:
-                  summary: Слоты для встречи 15 минут
-                  value:
-                    - id: slot-15min-2026-04-15-09-00
-                      startTime: '2026-04-15T09:00:00.000Z'
-                      endTime: '2026-04-15T09:15:00.000Z'
-                      isAvailable: true
-                    - id: slot-15min-2026-04-15-09-15
-                      startTime: '2026-04-15T09:15:00.000Z'
-                      endTime: '2026-04-15T09:30:00.000Z'
-                      isAvailable: false
-                    - id: slot-15min-2026-04-15-09-30
-                      startTime: '2026-04-15T09:30:00.000Z'
-                      endTime: '2026-04-15T09:45:00.000Z'
-                      isAvailable: true
-                    - id: slot-15min-2026-04-15-09-45
-                      startTime: '2026-04-15T09:45:00.000Z'
-                      endTime: '2026-04-15T10:00:00.000Z'
-                      isAvailable: true
-                    - id: slot-15min-2026-04-15-10-00
-                      startTime: '2026-04-15T10:00:00.000Z'
-                      endTime: '2026-04-15T10:15:00.000Z'
-                      isAvailable: false
-                    - id: slot-15min-2026-04-15-14-00
-                      startTime: '2026-04-15T14:00:00.000Z'
-                      endTime: '2026-04-15T14:15:00.000Z'
-                      isAvailable: true
-                    - id: slot-15min-2026-04-15-14-15
-                      startTime: '2026-04-15T14:15:00.000Z'
-                      endTime: '2026-04-15T14:30:00.000Z'
-                      isAvailable: false
-                    - id: slot-15min-2026-04-15-14-30
-                      startTime: '2026-04-15T14:30:00.000Z'
-                      endTime: '2026-04-15T14:45:00.000Z'
-                      isAvailable: true
-                    - id: slot-15min-2026-04-15-14-45
-                      startTime: '2026-04-15T14:45:00.000Z'
-                      endTime: '2026-04-15T15:00:00.000Z'
-                      isAvailable: false
-                    - id: slot-15min-2026-04-16-09-00
-                      startTime: '2026-04-16T09:00:00.000Z'
-                      endTime: '2026-04-16T09:15:00.000Z'
-                      isAvailable: true
-                    - id: slot-15min-2026-04-16-10-30
-                      startTime: '2026-04-16T10:30:00.000Z'
-                      endTime: '2026-04-16T10:45:00.000Z'
-                      isAvailable: false
-                    - id: slot-15min-2026-04-16-14-00
-                      startTime: '2026-04-16T14:00:00.000Z'
-                      endTime: '2026-04-16T14:15:00.000Z'
-                      isAvailable: true
-                    - id: slot-15min-2026-04-17-11-00
-                      startTime: '2026-04-17T11:00:00.000Z'
-                      endTime: '2026-04-17T11:15:00.000Z'
-                      isAvailable: false
         '404':
           description: The server cannot find the requested resource.
           content:
@@ -363,14 +341,11 @@ paths:
                   - message
       tags:
         - Guest
-
   /public/owner:
     get:
-      operationId: Owner_getPublicInfo
+      operationId: OwnerProfile_getPublicInfo
       summary: Информация о владельце календаря
-      description: |-
-        Получить публичную информацию о владельце календаря.
-        Используется для отображения на странице бронирования.
+      parameters: []
       responses:
         '200':
           description: The request has succeeded.
@@ -378,14 +353,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Owner'
-              examples:
-                default:
-                  value:
-                    id: 'tota-owner'
-                    name: 'Tota'
       tags:
         - Guest
-
 components:
   schemas:
     Booking:
@@ -428,7 +397,9 @@ components:
           type: string
           description: Примечание гостя (опционально)
         status:
-          $ref: '#/components/schemas/BookingStatus'
+          allOf:
+            - $ref: '#/components/schemas/BookingStatus'
+          description: Статус бронирования
         createdAt:
           type: string
           format: date-time
@@ -437,7 +408,6 @@ components:
         Бронирование слота гостем.
         На одно и то же время не может существовать двух бронирований,
         даже если они относятся к разным типам событий.
-
     BookingConflictError:
       type: object
       required:
@@ -458,14 +428,12 @@ components:
           format: date-time
           description: Начало занятого слота
       description: Ошибка конфликта при попытке забронировать уже занятый слот
-
     BookingStatus:
       type: string
       enum:
         - confirmed
         - cancelled
       description: Статус бронирования
-
     CreateBookingRequest:
       type: object
       required:
@@ -490,7 +458,6 @@ components:
           type: string
           description: Примечание к встрече (опционально)
       description: Тело запроса для создания бронирования гостем
-
     CreateEventTypeRequest:
       type: object
       required:
@@ -513,7 +480,6 @@ components:
           format: int32
           description: Длительность встречи в минутах
       description: Тело запроса для создания типа события
-
     EventType:
       type: object
       required:
@@ -538,7 +504,6 @@ components:
       description: |-
         Тип события, созданный владельцем календаря.
         Определяет категорию встречи с её названием, описанием и длительностью.
-
     EventTypeSummary:
       type: object
       required:
@@ -563,7 +528,6 @@ components:
       description: |-
         Публичное представление типа события для гостей.
         Содержит только данные, необходимые для выбора встречи.
-
     Owner:
       type: object
       required:
@@ -580,7 +544,6 @@ components:
         Владелец календаря. Единственный предзаданный профиль в системе.
         Регистрация и авторизация отсутствуют — профиль используется по умолчанию
         в административной части приложения.
-
     Slot:
       type: object
       required:
@@ -613,7 +576,6 @@ components:
         Слоты формируются на 14 дней начиная с текущей даты.
         Слот считается занятым, если на него создано хотя бы одно бронирование
         вне зависимости от типа события.
-
     SlotQueryParams:
       type: object
       required:
@@ -625,3 +587,25 @@ components:
             Идентификатор типа события.
             Используется для вычисления endTime каждого слота.
       description: Параметры запроса свободных слотов
+    UpdateEventTypeRequest:
+      type: object
+      required:
+        - name
+        - description
+        - durationMinutes
+      properties:
+        name:
+          type: string
+          description: Название типа события
+        description:
+          type: string
+          description: Описание типа события
+        durationMinutes:
+          type: integer
+          format: int32
+          description: Длительность встречи в минутах
+      description: Тело запроса для обновления типа события
+servers:
+  - url: http://localhost:3000
+    description: Local development server
+    variables: {}

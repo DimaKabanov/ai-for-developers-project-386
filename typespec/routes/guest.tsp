@@ -21,6 +21,19 @@ namespace CalendarBooking;
 @route("/public")
 @tag("Guest")
 namespace GuestRoutes {
+  /**
+   * Публичный профиль владельца календаря.
+   */
+  @route("/owner")
+  namespace OwnerProfile {
+    @get
+    @summary("Информация о владельце календаря")
+    op getPublicInfo(): {
+      @statusCode statusCode: 200;
+      @body owner: Owner;
+    };
+  }
+
 
   /**
    * Просмотр типов событий.
@@ -44,6 +57,8 @@ namespace GuestRoutes {
      *
      * Правила формирования слотов:
      * - Окно: [текущая дата, текущая дата + 14 дней]
+     * - Рабочие часы: 09:00-18:00 UTC
+     * - Шаг сетки слотов равен durationMinutes выбранного типа события
      * - endTime каждого слота = startTime + durationMinutes типа события
      * - Слот недоступен (isAvailable: false), если на этот временной
      *   промежуток уже существует хотя бы одно бронирование любого типа.
@@ -67,6 +82,8 @@ namespace GuestRoutes {
      *
      * Правила:
      * - startTime должен быть в пределах ближайших 14 дней.
+     * - startTime должен совпадать с началом слота из сетки:
+     *   рабочие часы 09:00-18:00 UTC, шаг = durationMinutes выбранного типа.
      * - Слот считается занятым если любое бронирование пересекается
      *   по времени с [startTime, startTime + durationMinutes], вне зависимости
      *   от типа события.
@@ -97,6 +114,7 @@ namespace GuestRoutes {
        * Ошибка валидации:
        * - startTime находится за пределами окна 14 дней
        * - startTime в прошлом
+       * - startTime не соответствует сетке слотов (рабочие часы/шаг)
        * - отсутствуют обязательные поля guestName или guestEmail
        */
       @statusCode statusCode: 422;

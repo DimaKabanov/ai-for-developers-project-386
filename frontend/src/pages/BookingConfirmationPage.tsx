@@ -75,11 +75,15 @@ export function BookingConfirmationPage() {
 
   // Check if we have selection in store
   useEffect(() => {
+    if (isSuccess) {
+      return;
+    }
+
     if (!slotId || !selectedTime || !eventTypeId) {
       // No selection in store, redirect back
       navigate(`/booking/${eventTypeId || ''}`);
     }
-  }, [slotId, selectedTime, eventTypeId, navigate]);
+  }, [slotId, selectedTime, eventTypeId, navigate, isSuccess]);
 
   const handleBack = () => {
     // Save form data to store before going back
@@ -105,8 +109,7 @@ export function BookingConfirmationPage() {
         guestNote: values.guestNote || undefined,
       });
 
-      // Success! Reset store and show success state
-      reset();
+      // Success! Show success state and clear store on exit from this screen
       setIsSuccess(true);
     } catch (err) {
       if (err instanceof Error) {
@@ -168,7 +171,13 @@ export function BookingConfirmationPage() {
               </Text>
             )}
 
-            <Button onClick={() => navigate('/')} mt="md">
+            <Button
+              onClick={() => {
+                reset();
+                navigate('/');
+              }}
+              mt="md"
+            >
               На главную
             </Button>
           </Stack>
