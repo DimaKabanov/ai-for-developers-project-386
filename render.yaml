@@ -2,7 +2,7 @@ services:
   - type: web
     name: calendar-booking
     runtime: docker
-    repo: https://github.com/tota-dev/calendar-booking
+    repo: https://github.com/DimaKabanov/ai-for-developers-project-386
     branch: main
     dockerfilePath: ./Dockerfile
     envVars:
@@ -12,7 +12,7 @@ services:
         value: production
       - key: RAILS_LOG_LEVEL
         value: info
-      - key: RAILS_MASTER_KEY
+      - key: SECRET_KEY_BASE
         generateValue: true
     healthCheckPath: /up
     plan: free
