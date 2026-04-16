@@ -2,6 +2,7 @@ node_modules/
 dist/
 tsp-output/
 *.tsbuildinfo
+e2e/test-results/
 
 # Backend (Rails)
 backend/.bundle/

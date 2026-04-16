@@ -1,0 +1,5 @@
+--require spec_helper
+--require rails_helper
+--require support/api_helpers
+--format documentation
+--color

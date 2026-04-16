@@ -1,0 +1,18 @@
+---
+meeting_15min:
+  id: meeting-15min-a7x9k2m3
+  name: "Встреча 15 минут"
+  description: "Короткая встреча для обсуждения"
+  durationMinutes: 15
+
+meeting_30min:
+  id: meeting-30min-b4p8n1q7
+  name: "Встреча 30 минут"
+  description: "Базовый тип события для бронирования"
+  durationMinutes: 30
+
+consultation_60min:
+  id: consultation-60min-c9x2k7m1
+  name: "Консультация 60 минут"
+  description: "Детальная консультация"
+  durationMinutes: 60

@@ -1,4 +1,4 @@
-PHONY: install dev dev-all build prism clean help lint lint-fix format format-check stylelint stylelint-fix check backend-install backend-dev backend-routes
+PHONY: install dev dev-all build prism clean help lint lint-fix format format-check stylelint stylelint-fix check backend-install backend-dev backend-routes backend-test backend-test-file e2e-install e2e-test e2e-test-headed e2e-test-ui test-all
 
 .DEFAULT_GOAL := help
 
@@ -26,6 +26,15 @@ help:
 	@echo "  make backend-routes   - Показать маршруты backend"
 	@echo "  make clean            - Очистка node_modules и сборок"
 	@echo "  make clean-all        - Полная очистка включая lock-файлы"
+	@echo ""
+	@echo "Тестирование:"
+	@echo "  make backend-test     - Запуск RSpec тестов бэкенда"
+	@echo "  make backend-test-file FILE=path - Запуск одного файла тестов"
+	@echo "  make e2e-install      - Установка Playwright и браузеров"
+	@echo "  make e2e-test         - Запуск E2E тестов (headless)"
+	@echo "  make e2e-test-headed  - Запуск E2E тестов с видимым браузером"
+	@echo "  make e2e-test-ui      - Запуск E2E тестов в UI режиме"
+	@echo "  make test-all         - Запуск всех тестов (backend + e2e)"
 
 install:
 	@echo "Установка зависимостей в корне..."
@@ -107,4 +116,38 @@ clean-all: clean
 	-rm -rf package-lock.json
 	@echo "Полная очистка завершена"
 
-.PHONY: install dev dev-all build prism clean help backend-install backend-dev backend-routes
+# Backend Tests
+backend-test:
+	@echo "Запуск RSpec тестов бэкенда..."
+	cd backend && bundle exec rspec
+
+backend-test-file:
+	@if [ -z "$(FILE)" ]; then \
+		echo "Использование: make backend-test-file FILE=spec/integration/public_api_spec.rb"; \
+		exit 1; \
+	fi
+	cd backend && bundle exec rspec $(FILE)
+
+# E2E Tests
+e2e-install:
+	@echo "Установка Playwright..."
+	cd e2e && npm install
+	cd e2e && npx playwright install chromium
+
+e2e-test:
+	@echo "Запуск E2E тестов (headless)..."
+	cd e2e && npm test
+
+e2e-test-headed:
+	@echo "Запуск E2E тестов с видимым браузером..."
+	cd e2e && npm run test:headed
+
+e2e-test-ui:
+	@echo "Запуск E2E тестов в UI режиме..."
+	cd e2e && npm run test:ui
+
+# Full Test Suite
+test-all: backend-test e2e-test
+	@echo "Все тесты выполнены!"
+
+.PHONY: install dev dev-all build prism clean help backend-install backend-dev backend-routes backend-test backend-test-file e2e-install e2e-test e2e-test-headed e2e-test-ui test-all

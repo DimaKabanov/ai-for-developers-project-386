@@ -1,5 +1,5 @@
-require "singleton"
-require "securerandom"
+require 'singleton'
+require 'securerandom'
 
 class CalendarStore
   include Singleton
@@ -8,13 +8,19 @@ class CalendarStore
 
   def initialize
     @mutex = Mutex.new
-    @owner = {
-      "id" => "tota-owner",
-      "name" => "Tota"
-    }
-    @event_types = {}
-    @bookings = []
-    seed_event_types
+    reset_for_tests!
+  end
+
+  def reset_for_tests!
+    @mutex.synchronize do
+      @owner = {
+        'id' => 'tota-owner',
+        'name' => 'Tota'
+      }
+      @event_types = {}
+      @bookings = []
+      seed_event_types_internal
+    end
   end
 
   def owner
@@ -31,9 +37,9 @@ class CalendarStore
 
   def create_event_type(attrs)
     @mutex.synchronize do
-      return nil if @event_types.key?(attrs["id"])
+      return nil if @event_types.key?(attrs['id'])
 
-      @event_types[attrs["id"]] = attrs
+      @event_types[attrs['id']] = attrs
       attrs.dup
     end
   end
@@ -56,20 +62,20 @@ class CalendarStore
       event_type = @event_types[event_type_id]
       return { error: :event_type_not_found } if event_type.nil?
 
-      end_time = start_time + event_type["durationMinutes"].minutes
+      end_time = start_time + event_type['durationMinutes'].minutes
       conflicting = find_conflicting_booking(start_time, end_time)
       return { error: :slot_already_booked, conflicting_booking: conflicting } if conflicting
 
       booking = {
         id: "bkg-#{SecureRandom.hex(6)}",
         event_type_id: event_type_id,
-        event_type_name: event_type["name"],
+        event_type_name: event_type['name'],
         start_time: start_time,
         end_time: end_time,
         guest_name: guest_name,
         guest_email: guest_email,
         guest_note: guest_note,
-        status: "confirmed",
+        status: 'confirmed',
         created_at: Time.now.utc
       }
 
@@ -79,13 +85,13 @@ class CalendarStore
   end
 
   def confirmed_bookings
-    @mutex.synchronize { @bookings.select { |booking| booking[:status] == "confirmed" }.map(&:dup) }
+    @mutex.synchronize { @bookings.select { |booking| booking[:status] == 'confirmed' }.map(&:dup) }
   end
 
   def upcoming_bookings(now: Time.now.utc)
     @mutex.synchronize do
       @bookings
-        .select { |booking| booking[:status] == "confirmed" && booking[:start_time] >= now }
+        .select { |booking| booking[:status] == 'confirmed' && booking[:start_time] >= now }
         .sort_by { |booking| booking[:start_time] }
         .map { |booking| serialize_booking(booking) }
     end
@@ -93,16 +99,16 @@ class CalendarStore
 
   def serialize_booking(booking)
     {
-      "id" => booking[:id],
-      "eventTypeId" => booking[:event_type_id],
-      "eventTypeName" => booking[:event_type_name],
-      "startTime" => booking[:start_time].iso8601(3),
-      "endTime" => booking[:end_time].iso8601(3),
-      "guestName" => booking[:guest_name],
-      "guestEmail" => booking[:guest_email],
-      "guestNote" => booking[:guest_note],
-      "status" => booking[:status],
-      "createdAt" => booking[:created_at].iso8601(3)
+      'id' => booking[:id],
+      'eventTypeId' => booking[:event_type_id],
+      'eventTypeName' => booking[:event_type_name],
+      'startTime' => booking[:start_time].iso8601(3),
+      'endTime' => booking[:end_time].iso8601(3),
+      'guestName' => booking[:guest_name],
+      'guestEmail' => booking[:guest_email],
+      'guestNote' => booking[:guest_note],
+      'status' => booking[:status],
+      'createdAt' => booking[:created_at].iso8601(3)
     }.compact
   end
 
@@ -110,7 +116,7 @@ class CalendarStore
 
   def find_conflicting_booking(start_time, end_time)
     @bookings.find do |booking|
-      booking[:status] == "confirmed" && ranges_overlap?(start_time, end_time, booking[:start_time], booking[:end_time])
+      booking[:status] == 'confirmed' && ranges_overlap?(start_time, end_time, booking[:start_time], booking[:end_time])
     end
   end
 
@@ -118,18 +124,18 @@ class CalendarStore
     start_a < end_b && start_b < end_a
   end
 
-  def seed_event_types
-    create_event_type(
-      "id" => "meeting-15min-a7x9k2m3",
-      "name" => "Встреча 15 минут",
-      "description" => "Короткий тип события для быстрого слота.",
-      "durationMinutes" => 15
-    )
-    create_event_type(
-      "id" => "meeting-30min-b4p8n1q7",
-      "name" => "Встреча 30 минут",
-      "description" => "Базовый тип события для бронирования.",
-      "durationMinutes" => 30
-    )
+  def seed_event_types_internal
+    @event_types['meeting-15min-a7x9k2m3'] = {
+      'id' => 'meeting-15min-a7x9k2m3',
+      'name' => 'Встреча 15 минут',
+      'description' => 'Короткий тип события для быстрого слота.',
+      'durationMinutes' => 15
+    }
+    @event_types['meeting-30min-b4p8n1q7'] = {
+      'id' => 'meeting-30min-b4p8n1q7',
+      'name' => 'Встреча 30 минут',
+      'description' => 'Базовый тип события для бронирования.',
+      'durationMinutes' => 30
+    }
   end
 end

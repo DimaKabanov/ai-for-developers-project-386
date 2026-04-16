@@ -93,22 +93,74 @@ If browsers are missing:
 npx playwright install chromium
 ```
 
-## Single-Test Guidance
+## Test Suite
 
-Current state:
+### Backend API Tests (RSpec)
 
-- There is no established frontend unit test runner yet.
-- Backend test framework gems are not set up for a maintained suite.
+Located in `backend/spec/integration/`. Uses RSpec with in-memory store isolation.
 
-If backend tests are added later via Rails Minitest, run one test file or one test case with:
+Run all backend tests:
+
+```bash
+make backend-test
+```
+
+Run specific test file:
 
 ```bash
 cd backend
-bundle exec rails test test/path/to/some_test.rb
-bundle exec rails test test/path/to/some_test.rb:42
+bundle exec rspec spec/integration/public_api_spec.rb
+bundle exec rspec spec/integration/public_api_spec.rb:25  # specific line
 ```
 
-If frontend tests are added later (for example Vitest), add and document a single-test command in this file.
+Direct commands:
+
+```bash
+cd backend
+bundle exec rspec                    # all tests
+bundle exec rspec spec/integration/  # integration tests only
+```
+
+### E2E Tests (Playwright)
+
+Located in `e2e/tests/`. Tests full user scenarios through UI.
+
+Setup:
+
+```bash
+make e2e-install    # one-time setup
+```
+
+Run E2E tests:
+
+```bash
+make e2e-test          # headless mode
+make e2e-test-headed   # visible browser
+make e2e-test-ui       # interactive UI mode
+```
+
+Direct commands:
+
+```bash
+cd e2e
+npm test               # headless
+npm run test:headed    # visible browser
+npm run test:ui        # interactive mode
+```
+
+### Test Coverage
+
+Backend API specs cover:
+- Public endpoints: owner, event types, slots, bookings
+- Admin endpoints: CRUD event types, list bookings
+- Validation: 422 errors for invalid data
+- Conflicts: 409 errors for double-booking
+
+E2E specs cover:
+- Happy path: full booking flow
+- Validation: form error messages
+- Navigation: back button, state preservation
+- Admin: CRUD operations via UI
 
 ## API Contract Workflow
 
