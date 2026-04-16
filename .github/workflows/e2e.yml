@@ -1,0 +1,61 @@
+name: E2E Tests
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2.2'
+          bundler-cache: true
+          working-directory: backend
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      
+      - name: Install root dependencies
+        run: npm ci
+      
+      - name: Install frontend dependencies
+        run: cd frontend && npm ci
+      
+      - name: Install e2e dependencies
+        run: cd e2e && npm ci
+      
+      - name: Install Playwright browsers
+        run: cd e2e && npx playwright install chromium
+      
+      - name: Start backend
+        working-directory: backend
+        run: bundle exec rails server -p 3000 &
+      
+      - name: Start frontend
+        run: cd frontend && npm run dev &
+      
+      - name: Wait for backend
+        run: npx wait-on http://localhost:3000/public/owner --timeout 60000
+      
+      - name: Wait for frontend
+        run: npx wait-on http://localhost:5173 --timeout 60000
+      
+      - name: Run E2E tests
+        working-directory: e2e
+        run: npm test
+      
+      - name: Stop services
+        if: always()
+        run: |
+          pkill -f "rails server" || true
+          pkill -f "vite" || true

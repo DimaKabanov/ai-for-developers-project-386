@@ -9,6 +9,7 @@
     "@typespec/rest": "^0.63.0"
   },
   "devDependencies": {
-    "@stoplight/prism-cli": "^5.14.2"
+    "@stoplight/prism-cli": "^5.14.2",
+    "wait-on": "^8.0.1"
   }
 }

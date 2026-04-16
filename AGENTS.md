@@ -162,6 +162,55 @@ E2E specs cover:
 - Navigation: back button, state preservation
 - Admin: CRUD operations via UI
 
+## CI/CD (GitHub Actions)
+
+### Workflows
+
+Two workflows run automatically on GitHub:
+
+| Workflow | File | Trigger | Duration |
+|----------|------|---------|----------|
+| **CI** | `.github/workflows/ci.yml` | Push to main, Pull requests | ~2-3 min |
+| **E2E** | `.github/workflows/e2e.yml` | Push to main | ~5-8 min |
+
+### CI Workflow
+
+Runs on every push to main and every pull request:
+
+1. Backend RSpec tests (64 tests)
+2. Frontend ESLint check
+3. Frontend production build
+
+### E2E Workflow
+
+Runs on every push to main (after CI passes):
+
+1. Starts backend server (port 3000)
+2. Starts frontend dev server (port 5173)
+3. Runs 13 Playwright E2E tests
+4. Stops services
+
+### CI Commands (for debugging locally)
+
+```bash
+# Install wait-on (used in CI to wait for services)
+npm install
+
+# Wait for backend to be ready
+npx wait-on http://localhost:3000/public/owner --timeout 60000
+
+# Wait for frontend to be ready
+npx wait-on http://localhost:5173 --timeout 60000
+```
+
+### Status Badges
+
+Add to README.md:
+```markdown
+![CI](https://github.com/OWNER/REPO/actions/workflows/ci.yml/badge.svg)
+![E2E](https://github.com/OWNER/REPO/actions/workflows/e2e.yml/badge.svg)
+```
+
 ## API Contract Workflow
 
 - Source of truth: `typespec/*.tsp`.
